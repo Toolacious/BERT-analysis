@@ -1,4 +1,5 @@
 import numpy as np 
+from numpy.linalg import norm
 import pickle as pk 
 import torch 
 import random
@@ -65,7 +66,7 @@ def Anisotropy_function(version):
         cos = Anisotropy(samples,i,version) 
         record += [(i,cos)]
 
-    plt.plot([x[0] for x in record], [y[1] for y in record], "o-", label="pretrained Model" )
+    plt.plot([x[0] for x in record], [y[1] for y in record], "o-", color="purple", label="pretrained Model" )
 
     
     #Finetune version
@@ -77,7 +78,7 @@ def Anisotropy_function(version):
         cos = Anisotropy(samples,i,version) 
         record += [(i,cos)]
 
-    plt.plot([x[0] for x in record], [y[1] for y in record], "o-", label="Finetuned Model" )
+    plt.plot([x[0] for x in record], [y[1] for y in record], "o-", color="green", label="Finetuned Model" )
     plt.legend(loc='upper right')
     plt.savefig("picture/"+version+"_Anisotropy.png")
     print("finish anisotropy!")
@@ -106,10 +107,10 @@ def Anisotropy(data,layer_index,version):
 # Question 2
 def cosine_similarity_Anisotropy(two_words):
     
-    cos = None
     """
     Todo: return two word cosine similarity
     """
+    cos = np.dot(two_words[0][1], two_words[1][1])/(norm(two_words[0][1])*norm(two_words[1][1]))
     return cos
 
 # Question 3 -main - IntraSentenceSimilarity
@@ -122,7 +123,7 @@ def IntraSentenceSimilarity_function():
     for i in tqdm(range(0, 13)):
        cos = IntraSentenceSimilarity(samples,i) 
        record += [(i,cos)]
-    plt.plot([x[0] for x in record], [y[1] for y in record], "o-",label="pretrained Model" )
+    plt.plot([x[0] for x in record], [y[1] for y in record], "o-", color="purple",label="pretrained Model" )
     
     #finetune version
     record = []  
@@ -131,7 +132,7 @@ def IntraSentenceSimilarity_function():
     for i in tqdm(range(0, 13)):
        cos = IntraSentenceSimilarity(samples,i) 
        record += [(i,cos)]
-    plt.plot([x[0] for x in record], [y[1] for y in record], "o-",label="finetuned Model" )
+    plt.plot([x[0] for x in record], [y[1] for y in record], "o-", color="green", label="finetuned Model" )
     plt.legend(loc='upper right')
     plt.savefig("picture/Intra-sentence-similarity.png")
     print("finish Intra-sentence-similarity!")
@@ -147,7 +148,7 @@ def IntraSentenceSimilarity(data,layer_index):
         """
         Todo: calculate intra-sentence cosine similarity
         """
-        cos = 0
+        cos = np.dot(x[1], x[2])/(norm(x[1])*norm(x[2]))
         average_cos += [ np.mean(cos)/x[3] ]
     mean = sum(average_cos) / len(data)
     return mean 
@@ -164,7 +165,7 @@ def SelfSimilarity_function():
         self_similarity(samples,i,"pretrained")
         layer_self_similarity = calculate_self_similarity("pretrained",i)
         record += [(i,layer_self_similarity)]
-    plt.plot([x[0] for x in record], [y[1] for y in record], "o-",label="pretrained Model" )
+    plt.plot([x[0] for x in record], [y[1] for y in record], "o-", color="purple", label="pretrained Model" )
     
     #Finetuned version
     record = []  
@@ -175,7 +176,7 @@ def SelfSimilarity_function():
         self_similarity(samples,i,"finetune")
         layer_self_similarity = calculate_self_similarity("finetune",i)
         record += [(i,layer_self_similarity)]
-    plt.plot([x[0] for x in record], [y[1] for y in record], "o-",label="finetuned Model" )
+    plt.plot([x[0] for x in record], [y[1] for y in record], "o-", color="green",label="finetuned Model" )
     plt.legend(loc='upper right')
     plt.savefig("picture/Self-similarity.png")
     print("finish Self-similarity!")
@@ -190,7 +191,6 @@ def calculate_self_similarity(function,layer_index):
     for key in tqdm(data.keys()):
         same_word_embeddings=data[key]
         average_cos = []
-        mean=0
 
         """
         
@@ -199,7 +199,14 @@ def calculate_self_similarity(function,layer_index):
         Hint: You can write new function to do this or sklearn cosine similarity
         
         """
-        
+        from itertools import combinations
+        comb = list(combinations(range(len(same_word_embeddings)), 2))
+        for (i, j) in comb:
+            a = same_word_embeddings[i]
+            b = same_word_embeddings[j]
+            cos = np.dot(a, b)/(norm(a)*norm(b))
+            average_cos += [cos]
+        mean = sum(average_cos) / len(comb)
         total_average_cos += [np.mean(mean)]
     return np.mean(np.array(total_average_cos))
 
@@ -245,7 +252,7 @@ def AnisotropyAdjustedSelfSimilarity_function():
         self_similarity(samples,i,"pretrained")
         layer_self_similarity = calculate_self_similarity("pretrained",i)
         record += [(i,layer_self_similarity - cos)]
-    plt.plot([x[0] for x in record], [y[1] for y in record], "o-",label="pretrained Model" )
+    plt.plot([x[0] for x in record], [y[1] for y in record], "o-", color="purple", label="pretrained Model" )
 
     #finetune version
     record = []  
@@ -256,7 +263,7 @@ def AnisotropyAdjustedSelfSimilarity_function():
         self_similarity(samples,i,"finetune")
         layer_self_similarity = calculate_self_similarity("finetune",i)
         record += [(i,layer_self_similarity - cos)]
-    plt.plot([x[0] for x in record], [y[1] for y in record], "o-",label="finetuned Model" )
+    plt.plot([x[0] for x in record], [y[1] for y in record], "o-", color="green", label="finetuned Model" )
     plt.legend(loc='upper right')    
     plt.savefig("picture/Anisotropy-adjusted-self-similarity.png")
     print("finish Anisotropy-adjusted-self-similarity!")
@@ -274,7 +281,7 @@ def AnisotropyAdjustedIntraSentenceSimilarity_function():
        cos = Anisotropy(samples,i,version="intra-sentence-sim") 
        IntraSentenceSimilarity_cos = IntraSentenceSimilarity(samples,i) 
        record += [(i,IntraSentenceSimilarity_cos - cos)]
-    plt.plot([x[0] for x in record], [y[1] for y in record], "o-",label="pretrained Model" )
+    plt.plot([x[0] for x in record], [y[1] for y in record], "o-", color="purple", label="pretrained Model" )
     
     #Finetuned version    
     record = []  
@@ -284,7 +291,7 @@ def AnisotropyAdjustedIntraSentenceSimilarity_function():
        cos = Anisotropy(samples,i,version="intra-sentence-sim") 
        IntraSentenceSimilarity_cos = IntraSentenceSimilarity(samples,i) 
        record += [(i,IntraSentenceSimilarity_cos - cos)]
-    plt.plot([x[0] for x in record], [y[1] for y in record], "o-",label="finetuned Model" )
+    plt.plot([x[0] for x in record], [y[1] for y in record], "o-", color="green", label="finetuned Model" )
     plt.legend(loc='upper right')
     plt.savefig("picture/Anistropy-adjusted-Intra-sentence-similarity.png")
     print("finish Anistropy-adjusted-Intra-sentence-similarity!")
